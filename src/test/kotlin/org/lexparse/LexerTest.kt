@@ -16,6 +16,11 @@ open class LexerTest {
                 Token(TokenType.COMMA, ","),
                 Token(TokenType.SEMICOLON, ";")
         )
-        Assertions.assertEquals(expected, Lexer().tokenize(input))
+
+        val lexer = Lexer(input)
+
+        expected.forEach {
+            Assertions.assertEquals(it, lexer.getNextToken())
+        }
     }
 }

@@ -8,13 +8,47 @@ import org.junit.jupiter.api.Test
 open class LexerTest {
 
     @Test
-    fun testSpecialCharacterWithoutSpace() {
-        val input = "=+,;";
+    fun testBasicSpecialCharacter() {
+        val input = "=+,;"
         val expected = listOf(
                 Token(TokenType.ASSIGN, "="),
                 Token(TokenType.PLUS, "+"),
                 Token(TokenType.COMMA, ","),
                 Token(TokenType.SEMICOLON, ";")
+        )
+
+        val lexer = Lexer(input)
+
+        expected.forEach {
+            Assertions.assertEquals(it, lexer.getNextToken())
+        }
+    }
+
+    @Test
+    fun testFullSetSpecialCharacter() {
+        val input = "- / * < > !"
+        val expected = listOf(
+                Token(TokenType.MINUS, "-"),
+                Token(TokenType.SLASH, "/"),
+                Token(TokenType.ASTERISK, "*"),
+                Token(TokenType.LT, "<"),
+                Token(TokenType.GT, ">"),
+                Token(TokenType.BANG, "!")
+        )
+
+        val lexer = Lexer(input)
+
+        expected.forEach {
+            Assertions.assertEquals(it, lexer.getNextToken())
+        }
+    }
+
+    @Test
+    fun testCompoundSpecialCharacter() {
+        val input = "!= =="
+        val expected = listOf(
+                Token(TokenType.NOT_EQ, "!="),
+                Token(TokenType.EQ, "==")
         )
 
         val lexer = Lexer(input)

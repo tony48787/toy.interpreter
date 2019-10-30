@@ -18,5 +18,11 @@ enum class TokenType(val literal: String) {
 
     // Keywords
     FUNCTION("FUNCTION"),
-    LET("LET")
+    LET("let"),
+
+    // Identifier
+    IDENT("IDENT"),
+
+    // Values Type
+    INT("INT")
 }

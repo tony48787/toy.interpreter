@@ -19,6 +19,9 @@ class Lexer (val source: String){
         skipWhitespace()
 
         when {
+            ch == 0.toChar() -> {
+                return Token(TokenType.EOF, TokenType.EOF.literal)
+            }
             isLetter() -> {
                 val literal = readIdentifier()
                 val type = lookupTypeFromLiteral(literal)

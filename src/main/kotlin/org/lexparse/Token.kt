@@ -2,6 +2,8 @@ package org.lexparse
 
 data class Token(val type: TokenType, val literal: String)
 
+val illegalToken = Token(TokenType.ILLEGAL, TokenType.ILLEGAL.literal);
+
 enum class TokenType(val literal: String) {
     ILLEGAL("ILLEGAL"),
     EOF("EOF"),

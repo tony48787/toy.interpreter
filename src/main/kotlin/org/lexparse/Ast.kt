@@ -1,5 +1,7 @@
 package org.lexparse
 
+import javax.swing.plaf.nimbus.State
+
 interface Node {
     fun tokenLiteral():String
 }
@@ -46,6 +48,19 @@ class Identifier(val token:Token, val value:String): Expression {
     }
 
     override fun expressionNode() {
+
+    }
+
+}
+
+class ReturnStatement(val token: Token): Statement {
+    var returnValue: Expression?  = null
+
+    override fun tokenLiteral(): String {
+        return token.literal
+    }
+
+    override fun statementNode() {
 
     }
 

@@ -3,6 +3,7 @@ package org.lexparse
 class Parser(val lexer: Lexer) {
     var curToken: Token = illegalToken
     var peekToken: Token = illegalToken
+    var errors: ArrayList<String> = arrayListOf()
 
     init {
         getNextToken()
@@ -31,10 +32,21 @@ class Parser(val lexer: Lexer) {
     private fun parseStatement(): Statement? {
         when (curToken.type) {
             TokenType.LET -> return parseLetStatement()
+            TokenType.RETURN -> return parseReturnStatement()
             else -> {
                 return null
             }
         }
+    }
+
+    private fun parseReturnStatement(): Statement? {
+        val stmt = ReturnStatement(curToken)
+
+        while (!curTokenIs(TokenType.SEMICOLON)) {
+            getNextToken()
+        }
+
+        return stmt
     }
 
     private fun parseLetStatement(): Statement? {
@@ -61,6 +73,7 @@ class Parser(val lexer: Lexer) {
             getNextToken()
             return true
         } else {
+            peekError(expected)
             return false
         }
     }
@@ -71,5 +84,10 @@ class Parser(val lexer: Lexer) {
 
     private fun peekTokenIs(expected: TokenType): Boolean {
         return peekToken.type == expected
+    }
+
+    private fun peekError(expected: TokenType) {
+        val msg = "expected next token to be ${expected.literal}, got ${peekToken.literal} instead"
+        errors.add(msg)
     }
 }

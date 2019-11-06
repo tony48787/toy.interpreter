@@ -78,4 +78,6 @@ open class LexerTest {
             Assertions.assertEquals(it, lexer.getNextToken())
         }
     }
+
+
 }

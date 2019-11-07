@@ -78,6 +78,21 @@ class IntegerLiteral(val token:Token, val value:Int): Expression {
     }
 }
 
+class BooleanLiteral(val token:Token, val value:Int): Expression {
+
+    override fun tokenLiteral(): String {
+        return token.literal
+    }
+
+    override fun expressionNode() {
+
+    }
+
+    override fun toString(): String {
+        return value.toString()
+    }
+}
+
 class PrefixExpression(val token:Token, val operator: String): Expression {
     var right: Expression? = null
 

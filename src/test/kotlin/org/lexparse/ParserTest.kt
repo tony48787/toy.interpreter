@@ -18,10 +18,7 @@ open class ParserTest {
 
     @Test
     fun testParserLetStatement() {
-        val lexer = Lexer("let x = 5;")
-        val parser = Parser(lexer)
-
-        val program = parser.parseProgram()
+        val program = parseSource("let x = 5;")
 
         Assertions.assertEquals(1, program.statements.size);
 
@@ -35,10 +32,7 @@ open class ParserTest {
 
     @Test
     fun testParserReturnStatement() {
-        val lexer = Lexer("return 5;")
-        val parser = Parser(lexer)
-
-        val program = parser.parseProgram()
+        val program = parseSource("return 5;")
 
         Assertions.assertEquals(1, program.statements.size);
 
@@ -48,71 +42,51 @@ open class ParserTest {
 
     @Test
     fun testProgramToString() {
-        val lexer = Lexer("let x = y; return y;")
-        val parser = Parser(lexer)
-
-        val program = parser.parseProgram()
+        val program = parseSource("let x = y; return y;")
 
         Assertions.assertEquals(program.toString(), "let x = y;return y;")
     }
 
     @Test
     fun testIdentExpression() {
-        val lexer = Lexer("fooooobar;")
-        val parser = Parser(lexer)
-
-        val program = parser.parseProgram()
+        val program = parseSource("fooooobar;")
 
         val expressionStatement = program.statements[0] as ExpressionStatement;
-        val ident = expressionStatement.expression as Identifier;
-
-        Assertions.assertEquals(ident.value, "fooooobar")
+        testIdentifier(expressionStatement.expression!!, "fooooobar")
     }
 
     @Test
     fun testIntLiteralExpression() {
-        val lexer = Lexer("5454545;")
-        val parser = Parser(lexer)
-
-        val program = parser.parseProgram()
+        val program = parseSource("5454545;")
 
         val expressionStatement = program.statements[0] as ExpressionStatement;
-        val ident = expressionStatement.expression as IntegerLiteral;
-
-        Assertions.assertEquals(ident.value, 5454545)
+        testIntegerLiteral(expressionStatement.expression!!, 5454545)
     }
 
     @Test
-    fun testPrefixExpression() {
+    fun testPrefixExpressions() {
         val prefixInputs = arrayOf(
                 Triple("-5", "-", 5),
-                Triple("!15", "!", 15)
+                Triple("!15", "!", 15),
+                Triple("!true", "!", true),
+                Triple("!false", "!", false)
         )
 
         prefixInputs.forEach {
             val input = it.first
             val operator = it.second
-            val expectedIntegerLiteral = it.third
+            val expected = it.third
 
-            val lexer = Lexer(input)
-            val parser = Parser(lexer)
-
-            val program = parser.parseProgram()
-
-            checkErrors(parser.errors)
+            val program = parseSource(input)
 
             val expressionStatement = program.statements[0] as ExpressionStatement;
-            val prefixExpression = expressionStatement.expression as PrefixExpression;
-            val integerLiteral = prefixExpression.right as IntegerLiteral;
-
-            Assertions.assertEquals(prefixExpression.operator, operator)
-            Assertions.assertEquals(integerLiteral.value, expectedIntegerLiteral)
+            testPrefixExpression(expressionStatement.expression!!, operator, expected)
         }
     }
 
     @Test
-    fun testInfixExpression() {
-        data class TestInput(val input:String, val leftValue: Int, val operator: String, val rightValue: Int)
+    fun testInfixExpressions() {
+        data class TestInput(val input:String, val leftValue: Any, val operator: String, val rightValue: Any)
 
         val infixInputs = arrayOf(
                 TestInput("5 + 5", 5, "+", 5),
@@ -124,27 +98,62 @@ open class ParserTest {
                 TestInput("5 < 5", 5, "<", 5),
 
                 TestInput("5 == 5", 5, "==", 5),
-                TestInput("5 != 5", 5, "!=", 5)
+                TestInput("5 != 5", 5, "!=", 5),
+
+                TestInput("true != false", true, "!=", false),
+                TestInput("true ==     true", true, "==", true)
 
         )
 
         infixInputs.forEach {
-            val lexer = Lexer(it.input)
-            val parser = Parser(lexer)
-
-            val program = parser.parseProgram()
-
-            checkErrors(parser.errors)
-
+            val program = parseSource(it.input)
             val expressionStatement = program.statements[0] as ExpressionStatement;
-            val infixExpression = expressionStatement.expression as InfixExpression;
-            val leftIntegerLiteral = infixExpression.right as IntegerLiteral;
-            val rightIntegerLiteral = infixExpression.right as IntegerLiteral;
-
-            Assertions.assertEquals(infixExpression.operator, it.operator)
-            Assertions.assertEquals(leftIntegerLiteral.value, it.leftValue)
-            Assertions.assertEquals(rightIntegerLiteral.value, it.rightValue)
+            testInfixExpression(expressionStatement.expression!!, it.leftValue, it.operator, it.rightValue)
         }
+    }
+
+    @Test
+    fun testBooleanExpressions() {
+        val boolInputs = arrayOf(
+                Pair("true;", true),
+                Pair("false;", false)
+        )
+
+        boolInputs.forEach {
+            val program = parseSource(it.first)
+            val expressionStatement = program.statements[0] as ExpressionStatement;
+            testBooleanExpression(expressionStatement.expression!!, it.second)
+        }
+    }
+
+    @Test
+    fun testOperatorPrecedenceParsing() {
+        val inputs = arrayOf(
+                Pair("1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)"),
+                Pair("2 + 3 * 4;", "(2 + (3 * 4))"),
+                Pair("(5 + 5) * 2", "((5 + 5) * 2)"),
+                Pair("2 / (5 + 4)", "(2 / (5 + 4))"),
+                Pair("-(5 + 5)", "(-(5 + 5))"),
+                Pair("!(true == true)", "(!(true == true))")
+        )
+
+        inputs.forEach {
+            val program = parseSource(it.first)
+            Assertions.assertEquals(program.toString(), it.second);
+        }
+    }
+
+    // ----------------
+    // Helper Functions
+    // ----------------
+    private fun parseSource(source: String): Program {
+        val lexer = Lexer(source)
+        val parser = Parser(lexer)
+
+        val program = parser.parseProgram()
+        checkErrors(parser.errors)
+
+        return program
     }
 
     private fun testLetIdentifier(statement: Statement, expected: String) {
@@ -155,6 +164,47 @@ open class ParserTest {
     private fun testToken(statement: Statement, expected: TokenType) {
         val letStatement = statement as LetStatement
         Assertions.assertEquals(letStatement.token.type, expected)
+    }
+
+    private fun <T> testPrefixExpression(exp: Expression, operator: String, expectedRight: T) {
+        val prefixExpression = exp as PrefixExpression
+
+        Assertions.assertEquals(prefixExpression.operator, operator)
+        testLiteralExpression(prefixExpression.right!!, expectedRight)
+    }
+
+    private fun <T> testInfixExpression(exp: Expression, expectedLeft: T, operator: String, expectedRight: T) {
+        val infixExpression = exp as InfixExpression
+
+        testLiteralExpression(infixExpression.left!!, expectedLeft)
+        Assertions.assertEquals(infixExpression.operator, operator)
+        testLiteralExpression(infixExpression.right!!, expectedRight)
+    }
+
+    private fun testLiteralExpression(exp: Expression, expected: Any?) {
+        when (exp) {
+            is Identifier -> testIdentifier(exp, expected as String)
+            is IntegerLiteral -> testIntegerLiteral(exp, expected as Int)
+            is BooleanLiteral -> testBooleanExpression(exp, expected as Boolean)
+        }
+    }
+
+    private fun testIdentifier(exp: Expression, expected:String) {
+        val identifier = exp as Identifier
+        Assertions.assertEquals(identifier.value, expected)
+        Assertions.assertEquals(identifier.tokenLiteral(), expected)
+    }
+
+    private fun testIntegerLiteral(exp: Expression, expected: Int) {
+        val integerLiteral = exp as IntegerLiteral
+        Assertions.assertEquals(integerLiteral.value, expected)
+        Assertions.assertEquals(integerLiteral.tokenLiteral(), expected.toString())
+    }
+
+    private fun testBooleanExpression(exp: Expression, expected: Boolean) {
+        val booleanLiteral = exp as BooleanLiteral
+        Assertions.assertEquals(booleanLiteral.value, expected)
+        Assertions.assertEquals(booleanLiteral.tokenLiteral(), expected.toString())
     }
 
     private fun checkErrors(errors: ArrayList<String>) {

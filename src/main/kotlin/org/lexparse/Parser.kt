@@ -4,7 +4,7 @@ class Parser(val lexer: Lexer) {
     var curToken: Token = illegalToken
     var peekToken: Token = illegalToken
     var errors: ArrayList<String> = arrayListOf()
-    var prefixParseFns: Map<TokenType, () -> Expression>
+    var prefixParseFns: Map<TokenType, () -> Expression?>
     var infixParseFns: Map<TokenType, (Expression) -> Expression>
 
     init {
@@ -15,7 +15,10 @@ class Parser(val lexer: Lexer) {
             TokenType.IDENT to ::parseIdentifier,
             TokenType.INT to ::parseIntegerLiteral,
             TokenType.MINUS to ::parsePrefixExpression,
-            TokenType.BANG to ::parsePrefixExpression
+            TokenType.BANG to ::parsePrefixExpression,
+            TokenType.TRUE to ::parseBooleanExpression,
+            TokenType.FALSE to ::parseBooleanExpression,
+            TokenType.LPAREN to ::parseGroupedExpression
         )
         infixParseFns = mapOf(
             TokenType.PLUS to ::parseInfixExpression,
@@ -158,6 +161,19 @@ class Parser(val lexer: Lexer) {
         getNextToken()
         exp.right = parseExpression(precedence)
 
+        return exp
+    }
+
+    private fun parseBooleanExpression(): Expression {
+        return BooleanLiteral(curToken, curTokenIs(TokenType.TRUE))
+    }
+
+    private fun parseGroupedExpression(): Expression? {
+        getNextToken()
+        val exp = parseExpression(Precedence.LOWEST)
+        if (!expectPeek(TokenType.RPAREN)) {
+            return null
+        }
         return exp
     }
 

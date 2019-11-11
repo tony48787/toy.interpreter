@@ -78,7 +78,7 @@ class IntegerLiteral(val token:Token, val value:Int): Expression {
     }
 }
 
-class BooleanLiteral(val token:Token, val value:Int): Expression {
+class BooleanLiteral(val token:Token, val value:Boolean): Expression {
 
     override fun tokenLiteral(): String {
         return token.literal
@@ -124,6 +124,42 @@ class InfixExpression(val token:Token, val operator: String): Expression {
     override fun toString(): String {
         return "(${left.toString()} $operator ${right.toString()})"
     }
+}
+
+class IfExpression(val token:Token): Expression {
+    var condition: Expression? = null
+    var consequence: BlockStatement? = null
+    var alternative: BlockStatement? = null
+
+    override fun tokenLiteral(): String {
+        return token.literal
+    }
+
+    override fun toString(): String {
+        val elseStr = alternative.let { " else ${alternative.toString()}" }
+        return "if ${condition.toString()} ${consequence.toString()} $elseStr"
+    }
+
+    override fun expressionNode() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+class BlockStatement(val token:Token): Statement {
+    var statements:ArrayList<Statement> = arrayListOf()
+
+    override fun tokenLiteral(): String {
+        return token.literal
+    }
+
+    override fun toString(): String {
+        return statements.fold("") { strs, statement -> strs.plus(statement.toString())}
+    }
+
+    override fun statementNode() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
 }
 
 class ReturnStatement(val token: Token): Statement {

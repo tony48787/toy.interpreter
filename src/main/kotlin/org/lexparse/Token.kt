@@ -32,6 +32,8 @@ enum class TokenType(val literal: String) {
     // Keywords
     FUNCTION("FUNCTION"),
     LET("let"),
+    IF("if"),
+    ELSE("else"),
 
     // Identifier
     IDENT("IDENT"),
@@ -49,7 +51,9 @@ val keywords = mapOf<String, TokenType>(
         "let" to TokenType.LET,
         "return" to TokenType.RETURN,
         "true" to TokenType.TRUE,
-        "false" to TokenType.FALSE
+        "false" to TokenType.FALSE,
+        "if" to TokenType.IF,
+        "else" to TokenType.ELSE
 )
 
 fun lookupTypeFromLiteral(literal: String): TokenType {

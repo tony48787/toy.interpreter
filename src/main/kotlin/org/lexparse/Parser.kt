@@ -18,7 +18,8 @@ class Parser(val lexer: Lexer) {
             TokenType.BANG to ::parsePrefixExpression,
             TokenType.TRUE to ::parseBooleanExpression,
             TokenType.FALSE to ::parseBooleanExpression,
-            TokenType.LPAREN to ::parseGroupedExpression
+            TokenType.LPAREN to ::parseGroupedExpression,
+            TokenType.IF to ::parseIfExpression
         )
         infixParseFns = mapOf(
             TokenType.PLUS to ::parseInfixExpression,
@@ -175,6 +176,53 @@ class Parser(val lexer: Lexer) {
             return null
         }
         return exp
+    }
+
+    private fun parseIfExpression(): Expression? {
+        val ifExpression = IfExpression(curToken)
+
+        if (!expectPeek(TokenType.LPAREN)) {
+            return null
+        }
+
+        getNextToken()
+        ifExpression.condition = parseExpression(Precedence.LOWEST)
+
+        if (!expectPeek(TokenType.RPAREN)) {
+            return null
+        }
+
+        if (!expectPeek(TokenType.LBRACE)) {
+            return null
+        }
+
+        ifExpression.consequence = parseBlockStatement()
+
+        if (peekTokenIs(TokenType.ELSE)) {
+            getNextToken()
+
+            if (!expectPeek(TokenType.LBRACE)) {
+                return null
+            }
+
+            ifExpression.alternative = parseBlockStatement()
+        }
+
+        return ifExpression
+    }
+
+    private fun parseBlockStatement(): BlockStatement? {
+        val blockStatement = BlockStatement(curToken)
+
+        getNextToken()
+
+        while (!curTokenIs(TokenType.RBRACE) && !curTokenIs(TokenType.EOF)) {
+            val stmt = parseStatement()
+            stmt.let { blockStatement.statements.add(it!!) }
+            getNextToken()
+        }
+
+        return blockStatement
     }
 
     private fun expectPeek(expected: TokenType): Boolean {

@@ -143,6 +143,44 @@ open class ParserTest {
         }
     }
 
+    @Test
+    fun testIfExpressions() {
+        val input = "if (x > y) { x }"
+        val program = parseSource(input)
+
+        Assertions.assertEquals(1, program.statements.size)
+        val expressionStatement = program.statements[0] as ExpressionStatement
+        val ifExpression = expressionStatement.expression as IfExpression
+
+        testInfixExpression(ifExpression.condition!!, "x", ">", "y")
+        Assertions.assertEquals(1, ifExpression.consequence?.statements?.size)
+
+        val consExpressionStatement = ifExpression.consequence?.statements?.get(0) as ExpressionStatement
+        testIdentifier(consExpressionStatement.expression!!, "x")
+        Assertions.assertEquals(null, ifExpression.alternative)
+
+    }
+
+    @Test
+    fun testIfElseExpressions() {
+        val input = "if (x > y) { x } else { y }"
+        val program = parseSource(input)
+
+        Assertions.assertEquals(1, program.statements.size)
+        val expressionStatement = program.statements[0] as ExpressionStatement
+        val ifExpression = expressionStatement.expression as IfExpression
+
+        testInfixExpression(ifExpression.condition!!, "x", ">", "y")
+        Assertions.assertEquals(1, ifExpression.consequence?.statements?.size)
+
+        val consExpressionStatement = ifExpression.consequence?.statements?.get(0) as ExpressionStatement
+        testIdentifier(consExpressionStatement.expression!!, "x")
+
+        val alteExpressionStatement = ifExpression.alternative?.statements?.get(0) as ExpressionStatement
+        testIdentifier(alteExpressionStatement.expression!!, "y")
+
+    }
+
     // ----------------
     // Helper Functions
     // ----------------
@@ -208,7 +246,7 @@ open class ParserTest {
     }
 
     private fun checkErrors(errors: ArrayList<String>) {
-        if (errors.isEmpty()) {
+        if (errors.isNotEmpty()) {
             println("--- Errors ---")
             errors.forEach {
                 println(it)

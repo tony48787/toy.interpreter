@@ -145,6 +145,25 @@ class IfExpression(val token:Token): Expression {
     }
 }
 
+class FunctionLiteral(val token:Token): Expression {
+    var parameters: ArrayList<Identifier> = arrayListOf()
+    var body: BlockStatement? = null
+
+    override fun tokenLiteral(): String {
+        return token.literal
+    }
+
+    override fun toString(): String {
+        val paramStr = parameters.joinToString(", ")
+        return "${tokenLiteral()} ($paramStr) ${body.toString()}"
+    }
+
+    override fun expressionNode() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+}
+
 class BlockStatement(val token:Token): Statement {
     var statements:ArrayList<Statement> = arrayListOf()
 

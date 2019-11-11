@@ -3,6 +3,8 @@ package org.lexparse
 import io.quarkus.test.junit.QuarkusTest
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Timeout
+import java.util.concurrent.TimeUnit
 
 @QuarkusTest
 open class ParserTest {
@@ -179,6 +181,25 @@ open class ParserTest {
         val alteExpressionStatement = ifExpression.alternative?.statements?.get(0) as ExpressionStatement
         testIdentifier(alteExpressionStatement.expression!!, "y")
 
+    }
+
+    @Test
+    @Timeout(1, unit = TimeUnit.SECONDS)
+    fun testFunctionLiterals() {
+        val input = "fn (x, y) { return x + y }"
+        val program = parseSource(input)
+
+        Assertions.assertEquals(1, program.statements.size)
+        val expressionStatement = program.statements[0] as ExpressionStatement
+        val functionLiteral = expressionStatement.expression as FunctionLiteral
+
+        Assertions.assertEquals(2, functionLiteral.parameters.size)
+        Assertions.assertEquals(arrayListOf("x", "y"), functionLiteral.parameters)
+
+        Assertions.assertEquals(1, functionLiteral.body?.statements?.size)
+        val blockStatement = functionLiteral.body as BlockStatement
+        val bodyExpressionStatement = blockStatement.statements[0] as ExpressionStatement
+        testInfixExpression(bodyExpressionStatement.expression!!, "x", "+", "y")
     }
 
     // ----------------

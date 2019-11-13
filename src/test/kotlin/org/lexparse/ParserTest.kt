@@ -22,26 +22,39 @@ open class ParserTest {
 
     @Test
     fun testParserLetStatement() {
-        val program = parseSource("let x = 5;")
+        val inputs = arrayOf(
+                Triple("let x = 5;", "x", 5),
+                Triple("let x = true;", "x", true),
+                Triple("let x = y;", "x", "y")
+        )
 
-        Assertions.assertEquals(1, program.statements.size);
-
-        val expectedIdentifiers = arrayOf("x")
-
-        for ((index, expected) in expectedIdentifiers.withIndex()) {
-            testToken(program.statements[index], TokenType.LET)
-            testLetIdentifier(program.statements[index], expected)
+        inputs.forEach {
+            val program = parseSource(it.first)
+            Assertions.assertEquals(1, program.statements.size);
+            val letStatement = program.statements[0] as LetStatement
+            testLetStatement(letStatement, it.second, it.third)
         }
     }
 
     @Test
     fun testParserReturnStatement() {
-        val program = parseSource("return 5;")
+        val inputs = arrayOf(
+                Pair("return 5;", 5),
+                Pair("return true;", true),
+                Pair("return y;", "y")
+        )
 
-        Assertions.assertEquals(1, program.statements.size);
+        inputs.forEach {
+            val program = parseSource(it.first)
+            Assertions.assertEquals(1, program.statements.size);
+            val returnStatement = program.statements[0] as ReturnStatement
+            testReturnStatement(returnStatement, it.second)
+        }
+    }
 
-        val returnStatement = program.statements[0] as ReturnStatement
+    private fun testReturnStatement(returnStatement: ReturnStatement, expected: Any) {
         Assertions.assertEquals(returnStatement.token.type, TokenType.RETURN)
+        testLiteralExpression(returnStatement.returnValue!!, expected)
     }
 
     @Test
@@ -271,9 +284,11 @@ open class ParserTest {
         return program
     }
 
-    private fun testLetIdentifier(statement: Statement, expected: String) {
+    private fun testLetStatement(statement: Statement, expectedTokenLiteral: String, expectedValue: Any) {
         val letStatement = statement as LetStatement
-        Assertions.assertEquals(letStatement.name?.tokenLiteral(), expected)
+        Assertions.assertEquals(letStatement.token.type, TokenType.LET)
+        Assertions.assertEquals(letStatement.name?.tokenLiteral(), expectedTokenLiteral)
+        testLiteralExpression(letStatement.value!!, expectedValue)
     }
 
     private fun testToken(statement: Statement, expected: TokenType) {

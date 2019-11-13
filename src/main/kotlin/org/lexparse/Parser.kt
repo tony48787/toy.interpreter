@@ -134,6 +134,9 @@ class Parser(val lexer: Lexer) {
             return null
         }
 
+        getNextToken()
+        stmt.value = parseExpression(Precedence.LOWEST)
+
         while (!curTokenIs(TokenType.SEMICOLON)) {
             getNextToken()
         }

@@ -18,5 +18,6 @@ val precedenceOfTokenType = mapOf(
         TokenType.PLUS to Precedence.SUM,
         TokenType.MINUS to Precedence.SUM,
         TokenType.SLASH to Precedence.PRODUCT,
-        TokenType.ASTERISK to Precedence.PRODUCT
+        TokenType.ASTERISK to Precedence.PRODUCT,
+        TokenType.LPAREN to Precedence.CALL
 )

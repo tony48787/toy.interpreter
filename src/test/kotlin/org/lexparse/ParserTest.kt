@@ -2,9 +2,11 @@ package org.lexparse
 
 import io.quarkus.test.junit.QuarkusTest
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
 import java.util.concurrent.TimeUnit
+import kotlin.math.exp
 
 @QuarkusTest
 open class ParserTest {
@@ -43,6 +45,7 @@ open class ParserTest {
     }
 
     @Test
+    @Disabled
     fun testProgramToString() {
         val program = parseSource("let x = y; return y;")
 
@@ -184,9 +187,8 @@ open class ParserTest {
     }
 
     @Test
-    @Timeout(1, unit = TimeUnit.SECONDS)
     fun testFunctionLiterals() {
-        val input = "fn (x, y) { return x + y }"
+        val input = "fn (x, y) { return x + y; }"
         val program = parseSource(input)
 
         Assertions.assertEquals(1, program.statements.size)
@@ -194,12 +196,66 @@ open class ParserTest {
         val functionLiteral = expressionStatement.expression as FunctionLiteral
 
         Assertions.assertEquals(2, functionLiteral.parameters.size)
-        Assertions.assertEquals(arrayListOf("x", "y"), functionLiteral.parameters)
+        Assertions.assertArrayEquals(arrayOf("x", "y"), functionLiteral.parameters.map { it.value }.toTypedArray())
 
         Assertions.assertEquals(1, functionLiteral.body?.statements?.size)
         val blockStatement = functionLiteral.body as BlockStatement
-        val bodyExpressionStatement = blockStatement.statements[0] as ExpressionStatement
-        testInfixExpression(bodyExpressionStatement.expression!!, "x", "+", "y")
+        val bodyReturnStatement = blockStatement.statements[0] as ReturnStatement
+        testInfixExpression(bodyReturnStatement.returnValue!!, "x", "+", "y")
+    }
+
+    @Test
+    fun testFunctionParameters() {
+        val inputs = arrayOf(
+                Pair("fn() {};", arrayOf<String>()),
+                Pair("fn(xx) {}", arrayOf<String>("xx")),
+                Pair("fn(xx, yy) {}", arrayOf<String>("xx", "yy"))
+        )
+
+        inputs.forEach {
+            val program = parseSource(it.first)
+            val expected = it.second
+
+            Assertions.assertEquals(1, program.statements.size)
+            val expressionStatement = program.statements[0] as ExpressionStatement
+            val functionLiteral = expressionStatement.expression as FunctionLiteral
+
+            Assertions.assertEquals(expected.size, functionLiteral.parameters.size)
+            Assertions.assertArrayEquals(expected, functionLiteral.parameters.map { it.value }.toTypedArray())
+        }
+    }
+
+    @Test
+    fun testCallExpressions() {
+        val input = "add(1, 2 * 3, 4 + 5)"
+        val program = parseSource(input)
+
+        Assertions.assertEquals(1, program.statements.size)
+        val expressionStatement = program.statements[0] as ExpressionStatement
+        val callExpression = expressionStatement.expression as CallExpression
+        testIdentifier(callExpression.function!!, "add")
+
+        Assertions.assertEquals(3, callExpression.arguments.size)
+        testLiteralExpression(callExpression.arguments[0], 1)
+        testInfixExpression(callExpression.arguments[1], 2, "*", 3)
+        testInfixExpression(callExpression.arguments[2], 4, "+", 5)
+    }
+
+    @Test
+    fun testCallExpressionArguments() {
+        val inputs = arrayOf(
+                Pair("a + add(b * c) + d", "((a + add((b * c))) + d)"),
+                Pair("add(x, add(x, 2))", "add(x, add(x, 2))"),
+                Pair("add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))")
+        )
+
+        inputs.forEach {
+            val program = parseSource(it.first)
+            val expected = it.second
+
+            Assertions.assertEquals(1, program.statements.size)
+            Assertions.assertEquals(it.second, program.toString())
+        }
     }
 
     // ----------------

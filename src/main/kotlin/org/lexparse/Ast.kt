@@ -164,6 +164,25 @@ class FunctionLiteral(val token:Token): Expression {
 
 }
 
+class CallExpression(val token: Token): Expression {
+    var function: Expression? = null
+    var arguments: ArrayList<Expression> = arrayListOf()
+
+    override fun tokenLiteral(): String {
+        return token.literal
+    }
+
+    override fun toString(): String {
+        val argStr = arguments.joinToString(", ")
+        return "${function.toString()}($argStr)"
+    }
+
+    override fun expressionNode() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+}
+
 class BlockStatement(val token:Token): Statement {
     var statements:ArrayList<Statement> = arrayListOf()
 

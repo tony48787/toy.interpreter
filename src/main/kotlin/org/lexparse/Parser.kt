@@ -19,7 +19,8 @@ class Parser(val lexer: Lexer) {
             TokenType.TRUE to ::parseBooleanExpression,
             TokenType.FALSE to ::parseBooleanExpression,
             TokenType.LPAREN to ::parseGroupedExpression,
-            TokenType.IF to ::parseIfExpression
+            TokenType.IF to ::parseIfExpression,
+            TokenType.FUNCTION to ::parseFunctionLiteral
         )
         infixParseFns = mapOf(
             TokenType.PLUS to ::parseInfixExpression,
@@ -29,7 +30,8 @@ class Parser(val lexer: Lexer) {
             TokenType.EQ to ::parseInfixExpression,
             TokenType.NOT_EQ to ::parseInfixExpression,
             TokenType.LT to ::parseInfixExpression,
-            TokenType.GT to ::parseInfixExpression
+            TokenType.GT to ::parseInfixExpression,
+            TokenType.LPAREN to ::parseCallExpression
         )
 
     }
@@ -76,7 +78,7 @@ class Parser(val lexer: Lexer) {
     }
 
     private fun parseExpression(precedence: Precedence): Expression? {
-        val prefixParseFn = prefixParseFns.get(curToken.type)
+        val prefixParseFn = prefixParseFns[curToken.type]
 
         var leftExp = prefixParseFn?.let { it() }
                 ?: run {
@@ -87,7 +89,7 @@ class Parser(val lexer: Lexer) {
         leftExp?.let {
             while (!peekTokenIs(TokenType.SEMICOLON)
                     && precedence.ordinal < peekPrecedence()) {
-                val infixParseFn = infixParseFns.get(peekToken.type)
+                val infixParseFn = infixParseFns[peekToken.type]
 
                 infixParseFn?.let {
                     getNextToken()
@@ -108,6 +110,10 @@ class Parser(val lexer: Lexer) {
 
     private fun parseReturnStatement(): Statement? {
         val stmt = ReturnStatement(curToken)
+
+        getNextToken()
+
+        stmt.returnValue = parseExpression(Precedence.LOWEST)
 
         while (!curTokenIs(TokenType.SEMICOLON)) {
             getNextToken()
@@ -223,6 +229,88 @@ class Parser(val lexer: Lexer) {
         }
 
         return blockStatement
+    }
+
+    private fun parseFunctionLiteral(): FunctionLiteral? {
+        val funcLiteral = FunctionLiteral(curToken)
+
+        if (!expectPeek(TokenType.LPAREN)) {
+            return null
+        }
+
+        funcLiteral.parameters = parseFunctionParameters()
+
+        if (!expectPeek(TokenType.LBRACE)) {
+            return null
+        }
+
+        funcLiteral.body = parseBlockStatement()
+
+        return funcLiteral
+    }
+
+    private fun parseFunctionParameters(): ArrayList<Identifier> {
+        val identifiers = arrayListOf<Identifier>()
+
+        if (peekTokenIs(TokenType.RPAREN)) {
+            getNextToken()
+            return identifiers
+        }
+
+        getNextToken()
+
+        while(peekTokenIs(TokenType.COMMA)) {
+            val ident = Identifier(curToken, curToken.literal)
+            identifiers.add(ident)
+
+            getNextToken()
+            getNextToken()
+        }
+
+        val ident = Identifier(curToken, curToken.literal)
+        identifiers.add(ident)
+
+        if(!expectPeek(TokenType.RPAREN)) {
+            return arrayListOf()
+        }
+
+        return identifiers
+    }
+
+    private fun parseCallExpression(function: Expression): Expression {
+        val exp = CallExpression(curToken)
+        exp.function = function
+        exp.arguments = parseCallArguments()
+        return exp;
+    }
+
+    private fun parseCallArguments(): ArrayList<Expression> {
+        val args = arrayListOf<Expression>()
+
+        if (peekTokenIs(TokenType.RPAREN)) {
+            getNextToken()
+        } else {
+            getNextToken()
+            val exp = parseExpression(Precedence.LOWEST)
+            if (exp != null) {
+                args.add(exp)
+            }
+
+            while (peekTokenIs(TokenType.COMMA)) {
+                getNextToken()
+                getNextToken()
+                val exp = parseExpression(Precedence.LOWEST)
+                if (exp != null) {
+                    args.add(exp)
+                }
+            }
+
+            if (!expectPeek(TokenType.RPAREN)) {
+                return arrayListOf()
+            }
+        }
+
+        return args
     }
 
     private fun expectPeek(expected: TokenType): Boolean {

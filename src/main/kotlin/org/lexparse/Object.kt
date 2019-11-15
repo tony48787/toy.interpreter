@@ -7,14 +7,13 @@ interface Object {
     fun inspect(): String
 }
 
-enum ObjectType(val type: String) {
+enum class ObjectType(val type: String) {
     INTEGER_OBJ("INTEGER"),
     BOOLEAN_OBJ("BOOLEAN"),
     NULL_OBJ("NULL")
 }
 
-class IntegerObj: Object {
-    var value: Int = 0
+class IntegerObj(var value: Int = 0): Object {
 
     override fun type(): ObjectType {
         return ObjectType.INTEGER_OBJ
@@ -25,8 +24,7 @@ class IntegerObj: Object {
     }
 }
 
-class BooleanObj: Object {
-    var value: Boolean = false
+class BooleanObj(var value: Boolean = false): Object {
 
     override fun type(): ObjectType {
         return ObjectType.BOOLEAN_OBJ

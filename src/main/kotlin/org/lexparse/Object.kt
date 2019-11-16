@@ -10,7 +10,8 @@ interface Object {
 enum class ObjectType(val type: String) {
     INTEGER_OBJ("INTEGER"),
     BOOLEAN_OBJ("BOOLEAN"),
-    NULL_OBJ("NULL")
+    NULL_OBJ("NULL"),
+    RETURN_VALUE_OBJ("RETURN_VALUE")
 }
 
 class IntegerObj(var value: Int = 0): Object {
@@ -45,3 +46,13 @@ class NullObj: Object {
     }
 }
 
+class ReturnValueObj(val value: Object): Object {
+    override fun type(): ObjectType {
+        return ObjectType.RETURN_VALUE_OBJ
+    }
+
+    override fun inspect(): String {
+        return value.inspect()
+    }
+
+}

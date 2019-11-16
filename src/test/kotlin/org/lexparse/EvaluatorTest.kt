@@ -77,6 +77,46 @@ class EvaluatorTest {
         }
     }
 
+    @Test
+    fun testIfElseExpression() {
+        val tests = arrayOf(
+                Pair("if (true) { 10 }", 10),
+                Pair("if (false) { 10 }", null),
+                Pair("if (1) { 10 }", 10),
+                Pair("if (1 < 2) { 10 }", 10),
+                Pair("if (true) { 10 }", 10),
+                Pair("if (1 > 2) { 10 }", null),
+                Pair("if (1 < 2) { 10 } else { 20 }", 10),
+                Pair("if (1 > 2) { 10 } else { 20 }", 20)
+        )
+
+        tests.forEach {
+            val evaluated = evaluateSource(it.first)
+            val expected = it.second
+            if (expected == null) {
+                testNullObject(evaluated)
+            } else {
+                testIntegerObject(evaluated, expected)
+            }
+        }
+    }
+
+    @Test
+    fun testReturnStatement() {
+        val tests = arrayOf(
+                Pair("return 1;", 1),
+                Pair("return 1; 2;", 1),
+                Pair("return 2* 8; 1;", 16),
+                Pair("2; return 1; 3;", 1),
+                Pair("if (10 > 1) { if (10 > 1) { return 1; } } return 10;", 1)
+        )
+
+        tests.forEach {
+            val evaluated = evaluateSource(it.first)
+            testIntegerObject(evaluated, it.second)
+        }
+    }
+
     private fun evaluateSource(source: String): Object {
         val lexer = Lexer(source)
         val parser = Parser(lexer)
@@ -93,5 +133,10 @@ class EvaluatorTest {
     private fun testBooleanObject(obj:Object, expected: Boolean) {
         val booleanObj = obj as BooleanObj
         Assertions.assertEquals(expected, booleanObj.value)
+    }
+
+    private fun testNullObject(obj: Object) {
+        val nullObj = obj as NullObj
+        Assertions.assertEquals("null", nullObj.inspect())
     }
 }

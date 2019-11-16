@@ -9,7 +9,7 @@ class Evaluator {
         when (node) {
             is IntegerLiteral -> return IntegerObj(node.value)
             is BooleanLiteral -> return nativeBoolToBooleanObj(node.value)
-            is Program -> return evalStatements(node.statements)
+            is Program -> return evalProgram(node.statements)
             is ExpressionStatement -> return eval(node.expression!!)
             is PrefixExpression -> {
                 val right = eval(node.right!!)
@@ -20,8 +20,47 @@ class Evaluator {
                 val right = eval(node.right!!)
                 return evalInfixExpression(node.operator, left, right)
             }
+            is IfExpression -> return evalIfExpression(node)
+            is BlockStatement -> return evalStatements(node.statements)
+            is ReturnStatement -> return evalReturnStatement(node)
         }
         return NULL
+    }
+
+    private fun evalProgram(statements: java.util.ArrayList<Statement>): Object {
+        var result: Object = NULL
+
+        statements.forEach {
+            result = eval(it)
+
+            if (result is ReturnValueObj) {
+                return (result as ReturnValueObj).value
+            }
+        }
+
+        return result
+    }
+
+    private fun evalReturnStatement(node: ReturnStatement): Object {
+        val evaluated = eval(node.returnValue!!)
+        return ReturnValueObj(evaluated)
+    }
+
+    private fun evalIfExpression(node: IfExpression): Object {
+        val conditionObj = eval(node.condition!!)
+        return if (isTruthy(conditionObj)) {
+            eval(node.consequence!!)
+        } else {
+            node.alternative?.let { eval(it) } ?: NULL
+        }
+    }
+
+    private fun isTruthy(obj: Object): Boolean {
+        return when (obj) {
+            is NullObj -> false
+            FALSE -> false
+            else -> true
+        }
     }
 
     private fun evalInfixExpression(operator: String, left: Object, right: Object): Object {
@@ -55,6 +94,10 @@ class Evaluator {
 
         stmts.forEach {
             result = eval(it)
+
+            if (result is ReturnValueObj) {
+                return result
+            }
         }
 
         return result

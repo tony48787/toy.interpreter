@@ -13,11 +13,20 @@ class Evaluator {
             is ExpressionStatement -> return eval(node.expression!!)
             is PrefixExpression -> {
                 val right = eval(node.right!!)
+                if (isError(right)) {
+                    return right
+                }
                 return evalPrefixExpression(node.operator, right)
             }
             is InfixExpression -> {
                 val left = eval(node.left!!)
+                if (isError(left)) {
+                    return left
+                }
                 val right = eval(node.right!!)
+                if (isError(right)) {
+                    return right
+                }
                 return evalInfixExpression(node.operator, left, right)
             }
             is IfExpression -> return evalIfExpression(node)
@@ -35,6 +44,8 @@ class Evaluator {
 
             if (result is ReturnValueObj) {
                 return (result as ReturnValueObj).value
+            } else if (result is ErrorObj) {
+                return result
             }
         }
 
@@ -48,11 +59,18 @@ class Evaluator {
 
     private fun evalIfExpression(node: IfExpression): Object {
         val conditionObj = eval(node.condition!!)
+        if (isError(conditionObj)) {
+            return conditionObj
+        }
         return if (isTruthy(conditionObj)) {
             eval(node.consequence!!)
         } else {
             node.alternative?.let { eval(it) } ?: NULL
         }
+    }
+
+    private fun isError(obj: Object): Boolean {
+        return obj.type() == ObjectType.ERROR ?: false
     }
 
     private fun isTruthy(obj: Object): Boolean {
@@ -66,12 +84,14 @@ class Evaluator {
     private fun evalInfixExpression(operator: String, left: Object, right: Object): Object {
         if (left is IntegerObj && right is IntegerObj) {
             return evalIntegerInfixExpression(operator, left, right)
+        } else if (left.type().toString() != right.type().toString()) {
+            return ErrorObj("type mismatch: ${left.type()} $operator ${right.type()}")
         }
 
         return when (operator) {
             "==" -> nativeBoolToBooleanObj(left == right)
             "!=" -> nativeBoolToBooleanObj(left != right)
-            else -> NULL
+            else -> ErrorObj("unknown operator: ${left.type()} $operator ${right.type()}")
         }
     }
 
@@ -85,7 +105,7 @@ class Evaluator {
             ">" -> nativeBoolToBooleanObj(left.value > right.value)
             "==" -> nativeBoolToBooleanObj(left.value == right.value)
             "!=" -> nativeBoolToBooleanObj(left.value != right.value)
-            else -> NULL
+            else -> ErrorObj("unknown operator: ${left.type()} $operator ${right.type()}")
         }
     }
 
@@ -95,7 +115,7 @@ class Evaluator {
         stmts.forEach {
             result = eval(it)
 
-            if (result is ReturnValueObj) {
+            if (result is ReturnValueObj || result is ErrorObj) {
                 return result
             }
         }
@@ -107,7 +127,7 @@ class Evaluator {
         return when (operator) {
             "!" -> return evalBangOperatorExpression(right)
             "-" -> return evalMinusOperatorExpression(right)
-            else -> NULL
+            else -> ErrorObj("unknown operator: $operator ${right.type()}")
         }
     }
 
@@ -123,7 +143,7 @@ class Evaluator {
     private fun evalMinusOperatorExpression(right: Object): Object {
         return when (right) {
             is IntegerObj -> IntegerObj(-right.value)
-            else -> NULL
+            else -> ErrorObj("unknown operator: -${right.type()}")
         }
     }
 

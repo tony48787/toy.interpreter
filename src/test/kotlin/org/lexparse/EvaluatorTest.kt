@@ -117,6 +117,33 @@ class EvaluatorTest {
         }
     }
 
+    @Test
+    fun testErrorHandling() {
+        val tests = arrayOf(
+                Pair("true + 5;", "type mismatch: BOOLEAN + INTEGER"),
+                Pair("true + 5; 10;", "type mismatch: BOOLEAN + INTEGER"),
+                Pair("-false", "unknown operator: -BOOLEAN"),
+                Pair("true + false;", "unknown operator: BOOLEAN + BOOLEAN"),
+                Pair("10; true + false; 10;", "unknown operator: BOOLEAN + BOOLEAN"),
+                Pair("if (true) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN"),
+                Pair("return 1 + true;", "type mismatch: INTEGER + BOOLEAN"),
+                Pair("if (true == 10) { true + false; }", "type mismatch: BOOLEAN == INTEGER"),
+                Pair("if (true + 5 == 10) { true + false; }", "type mismatch: BOOLEAN + INTEGER"),
+                Pair("if (true == false + 10) { true + false; }", "type mismatch: BOOLEAN + INTEGER"),
+                Pair("-(true == 5);", "type mismatch: BOOLEAN == INTEGER")
+        )
+
+        tests.forEach {
+            val evaluated = evaluateSource(it.first)
+            testErrorObject(evaluated, it.second)
+        }
+    }
+
+    private fun testErrorObject(obj: Object, expected: String) {
+        val errorObj = obj as ErrorObj
+        Assertions.assertEquals(expected, errorObj.message)
+    }
+
     private fun evaluateSource(source: String): Object {
         val lexer = Lexer(source)
         val parser = Parser(lexer)

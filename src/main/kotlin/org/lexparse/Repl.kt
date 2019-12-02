@@ -22,7 +22,7 @@ class Repl {
             val parser = Parser(lexer)
             val program = parser.parseProgram()
 
-            return Evaluator().eval(program)
+            return Evaluator().eval(program, Env())
         }
     }
 }

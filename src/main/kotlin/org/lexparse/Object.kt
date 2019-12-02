@@ -12,7 +12,8 @@ enum class ObjectType(val type: String) {
     BOOLEAN("BOOLEAN"),
     NULL("NULL"),
     RETURN_VALUE("RETURN_VALUE"),
-    ERROR("ERROR")
+    ERROR("ERROR"),
+    FUNCTION("FUNCTION")
 }
 
 class IntegerObj(var value: Int = 0): Object {
@@ -67,4 +68,38 @@ class ErrorObj(val message: String): Object {
         return "Error: $message"
     }
 
+}
+
+class FunctionObj(val parameters: ArrayList<Identifier>, val body: BlockStatement, val env: Env): Object {
+    override fun type(): ObjectType {
+        return ObjectType.FUNCTION
+    }
+
+    override fun inspect(): String {
+        val paramStr = parameters.joinToString(", ")
+        return "fn ($paramStr) {\n${body.toString()}\n}"
+    }
+
+}
+
+class Env() {
+    val store = mutableMapOf<String, Object>()
+    var outerEnv: Env? = null
+
+    fun get(key: String): Object {
+
+        var value = store.getOrDefault(key, ErrorObj("identifier not found: $key"))
+
+        if (value is ErrorObj) {
+            outerEnv?.let {
+               value = it.get(key)
+            }
+        }
+
+        return value
+    }
+
+    fun set(key: String, value: Object) {
+        store[key] = value
+    }
 }

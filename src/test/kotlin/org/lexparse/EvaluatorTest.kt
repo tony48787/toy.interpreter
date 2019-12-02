@@ -130,12 +130,70 @@ class EvaluatorTest {
                 Pair("if (true == 10) { true + false; }", "type mismatch: BOOLEAN == INTEGER"),
                 Pair("if (true + 5 == 10) { true + false; }", "type mismatch: BOOLEAN + INTEGER"),
                 Pair("if (true == false + 10) { true + false; }", "type mismatch: BOOLEAN + INTEGER"),
-                Pair("-(true == 5);", "type mismatch: BOOLEAN == INTEGER")
+                Pair("-(true == 5);", "type mismatch: BOOLEAN == INTEGER"),
+                Pair("foobar", "identifier not found: foobar"),
+                Pair("let adder = fn(x) { fn(y) { x + y; }; }; let addFive = adder(5); x;", "identifier not found: x")
         )
 
         tests.forEach {
             val evaluated = evaluateSource(it.first)
             testErrorObject(evaluated, it.second)
+        }
+    }
+
+    @Test
+    fun testVariableBinding() {
+        val tests = arrayOf(
+                Pair("let a = 1; a;", 1),
+                Pair("let a = 10; let b = a; b", 10),
+                Pair("let a = 10; let b = 10; a * b;", 100)
+        )
+
+        tests.forEach {
+            val evaluated = evaluateSource(it.first)
+            testIntegerObject(evaluated, it.second)
+        }
+    }
+
+    @Test
+    fun testFunctionToString() {
+        val tests = arrayOf(
+                "fn(x) { x + 2; }"
+        )
+
+        tests.forEach {
+            val evaluated = evaluateSource(it)
+            Assertions.assertEquals("fn (x) {\n(x + 2)\n}", evaluated.inspect())
+        }
+    }
+
+    @Test
+    fun testFunctions() {
+        val tests = arrayOf(
+                Pair("let identity = fn(x) { x; }; identity(5);", 5),
+                Pair("let identity = fn(x) { return x; }; identity(5);", 5),
+                Pair("let identity = fn(x) { return x * 2; }; identity(5);", 10),
+                Pair("let identity = fn(x, y) { x + y; }; identity(5, 2);", 7),
+                Pair("fn(x) { x; }(5);", 5),
+                Pair("let apply = fn(a, b, func) { func(a, b); }; let addFunc = fn(x, y) { x + y; }; apply(5, 2, addFunc);", 7)
+        )
+
+        tests.forEach {
+            val evaluated = evaluateSource(it.first)
+            testIntegerObject(evaluated, it.second)
+        }
+    }
+
+    @Test
+    fun testClosures() {
+        val tests = arrayOf(
+                Pair("let adder = fn(x) { fn(y) { x + y; }; }; let addFive = adder(5); addFive(2)", 7),
+                Pair("let adder = fn(x) { fn(y) { x + y; }; }; let addFive = adder(5); addFive(2); let addThree = adder(3); addThree(6)", 9)
+        )
+
+        tests.forEach {
+            val evaluated = evaluateSource(it.first)
+            testIntegerObject(evaluated, it.second)
         }
     }
 
@@ -149,7 +207,7 @@ class EvaluatorTest {
         val parser = Parser(lexer)
         val program = parser.parseProgram()
 
-        return Evaluator().eval(program)
+        return Evaluator().eval(program, Env())
     }
 
     private fun testIntegerObject(obj:Object, expected:Int) {

@@ -5,42 +5,106 @@ class Evaluator {
     val FALSE = BooleanObj(false)
     val NULL = NullObj()
 
-    fun eval(node: Node): Object {
+    fun eval(node: Node, env: Env): Object {
         when (node) {
             is IntegerLiteral -> return IntegerObj(node.value)
             is BooleanLiteral -> return nativeBoolToBooleanObj(node.value)
-            is Program -> return evalProgram(node.statements)
-            is ExpressionStatement -> return eval(node.expression!!)
+            is Program -> return evalProgram(node.statements, env)
+            is ExpressionStatement -> return eval(node.expression!!, env)
             is PrefixExpression -> {
-                val right = eval(node.right!!)
+                val right = eval(node.right!!, env)
                 if (isError(right)) {
                     return right
                 }
                 return evalPrefixExpression(node.operator, right)
             }
             is InfixExpression -> {
-                val left = eval(node.left!!)
+                val left = eval(node.left!!, env)
                 if (isError(left)) {
                     return left
                 }
-                val right = eval(node.right!!)
+                val right = eval(node.right!!, env)
                 if (isError(right)) {
                     return right
                 }
                 return evalInfixExpression(node.operator, left, right)
             }
-            is IfExpression -> return evalIfExpression(node)
-            is BlockStatement -> return evalStatements(node.statements)
-            is ReturnStatement -> return evalReturnStatement(node)
+            is IfExpression -> return evalIfExpression(node, env)
+            is BlockStatement -> return evalStatements(node.statements, env)
+            is ReturnStatement -> return evalReturnStatement(node, env)
+            is Identifier -> return evalIdentifier(node, env)
+            is LetStatement -> return evalLetStatement(node, env)
+            is FunctionLiteral -> return evalFunctionLiteral(node, env)
+            is CallExpression -> return evalCallExpression(node, env)
         }
         return NULL
     }
 
-    private fun evalProgram(statements: java.util.ArrayList<Statement>): Object {
+    private fun evalCallExpression(node: CallExpression, env: Env): Object {
+        val result = eval(node.function!!, env)
+        if (isError(result)) {
+            return  result
+        }
+        //eval arguments
+        val evaluatedArgs = node.arguments.map {
+            eval(it, env)
+        }
+
+        if (!evaluatedArgs.isEmpty() && isError(evaluatedArgs[0])) {
+            return evaluatedArgs[0]
+        }
+
+        return applyFunction(result, evaluatedArgs)
+    }
+
+    private fun applyFunction(result: Object, args: List<Object>): Object {
+        val function = result as FunctionObj
+        val extendedEnv = extendFunctionEnv(function.env)
+
+        function.parameters.forEachIndexed { index, identifier ->
+            extendedEnv.set(identifier.value, args[index])
+        }
+
+        val result = eval(function.body, extendedEnv)
+        return unwrapReturnValue(result)
+    }
+
+    private fun extendFunctionEnv(outerEnv: Env): Env {
+        val env = Env()
+        env.outerEnv = outerEnv
+        return env
+    }
+
+    private fun unwrapReturnValue(result: Object): Object {
+        if (result is ReturnValueObj) {
+            return result.value
+        }
+
+        return result
+    }
+
+    private fun evalFunctionLiteral(node: FunctionLiteral, env: Env): Object {
+        return FunctionObj(node.parameters, node.body!!, env)
+    }
+
+    private fun evalLetStatement(node: LetStatement, env: Env): Object {
+        val result = node.value?.let { eval(it, env) }
+        if (result != null && isError(result)) {
+            return result
+        }
+        env.set(node.name!!.value, result!!)
+        return NULL
+    }
+
+    private fun evalIdentifier(node: Identifier, env: Env): Object {
+        return env.get(node.value)
+    }
+
+    private fun evalProgram(statements: java.util.ArrayList<Statement>, env: Env): Object {
         var result: Object = NULL
 
         statements.forEach {
-            result = eval(it)
+            result = eval(it, env)
 
             if (result is ReturnValueObj) {
                 return (result as ReturnValueObj).value
@@ -52,20 +116,20 @@ class Evaluator {
         return result
     }
 
-    private fun evalReturnStatement(node: ReturnStatement): Object {
-        val evaluated = eval(node.returnValue!!)
+    private fun evalReturnStatement(node: ReturnStatement, env: Env): Object {
+        val evaluated = eval(node.returnValue!!, env)
         return ReturnValueObj(evaluated)
     }
 
-    private fun evalIfExpression(node: IfExpression): Object {
-        val conditionObj = eval(node.condition!!)
+    private fun evalIfExpression(node: IfExpression, env: Env): Object {
+        val conditionObj = eval(node.condition!!, env)
         if (isError(conditionObj)) {
             return conditionObj
         }
         return if (isTruthy(conditionObj)) {
-            eval(node.consequence!!)
+            eval(node.consequence!!, env)
         } else {
-            node.alternative?.let { eval(it) } ?: NULL
+            node.alternative?.let { eval(it, env) } ?: NULL
         }
     }
 
@@ -109,11 +173,11 @@ class Evaluator {
         }
     }
 
-    private fun evalStatements(stmts: ArrayList<Statement>): Object {
+    private fun evalStatements(stmts: ArrayList<Statement>, env: Env): Object {
         var result: Object = NULL
 
         stmts.forEach {
-            result = eval(it)
+            result = eval(it, env)
 
             if (result is ReturnValueObj || result is ErrorObj) {
                 return result
